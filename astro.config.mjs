@@ -9,7 +9,7 @@ import pagefind from "astro-pagefind";
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://www.saroprock.com',
+  site: 'https://rollsroyce613.github.io',
   style: {
     scss: {
       includePaths: ['./src/styles']
