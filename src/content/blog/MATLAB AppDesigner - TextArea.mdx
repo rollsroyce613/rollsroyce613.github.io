@@ -1,0 +1,97 @@
+---
+title: 'MATLAB AppDesigner -- TextArea'
+description: MATLAB AppDesigner 中TextArea保留原有信息并换行显示提示信息
+pubDate: 07 21 2024
+image: /assets/images/matlab-app.png
+tags:
+  - MATLAB
+  - MATLAB AppDesigner
+  - TextArea
+---​
+
+# AppDesigner -- TextArea
+App Designer 中的文本区域TextArea组件，一般可以用来作为matlab app设计中的信息显示。
+
+```matlab
+app.TextArea.Value = 'Hello Matlab';
+```
+Value可以是字符向量、字符向量元胞数组、字符串数组或一维分类数组。这样直接给TextArea赋值，每次赋值都会消除先前的信息，然后显示新的信息。如果想要在app实现保留原有信息、多行信息的输出，在MathWorks官方帮助中心给出了一种方法：
+```matlab
+cellArrayText{1} = sprintf('%s\n%s', 'Line 1', 'Line 2');
+cellArrayText{2} = sprintf('%s\n%s', 'Line 3', 'Line 4');
+textarea = uitextarea('Value',cellArrayText);
+```
+cellArrayText是字符向量元胞数组，这种方式则可以实现多行输出字符串。
+
+## cell array
+那么，在App Designer中，就可以用此方法实现信息提示输出，保留原有信息并换行输出。
+
+首先，我们需要添加一个属性cellArrayText（字符向量元胞数组）：
+```matlab
+properties (Access = public)
+    cellArrayText %  字符向量元胞数组，私有属性或公有属性根据自己的需要
+end
+```
+然后，需要在startupFcn回调中给cellArrayText赋上初值，如：
+```matlab
+function startupFcn(app)
+    app.cellArrayText{1} = sprintf('%s\n', '***此处输出信息提示***'); % 赋初值
+    app.TextArea.Value=app.cellArrayText{1}; % 文本区域中的初始显示信息
+end
+```
+然后，添加一个函数实现文本区域的提示信息输出的功能：
+```matlab
+function outPut(app,str)
+    string = sprintf('%s\n', str); % 将数据格式化为字符串或字符向量
+    app.cellArrayText=horzcat(app.cellArrayText,string); % 水平串联数组
+    app.TextArea.Value = app.cellArrayText; % 给TextArea赋值
+end
+```
+在此后的回调代码中则可以通过调用outPut函数来实现信息提示文本输出。如：
+```matlab
+str='Hello Matlab';
+outPut(app,str);
+% 或者
+outPut(app,'**********信息提示已完成**********');
+```
+至此可以实现保留原有信息提示，并换行输出新的信息提示。
+
+## string
+cellArrayText 用string类型字符串也可以实现。
+```matlab
+properties (Access = public)
+    cellArrayText % string类型
+end
+
+methods (Access = public)
+    
+    % disp处理函数
+    function dispLogInfo(app, str)
+        string = sprintf("%s\n~> ", str); % 将数据格式化为字符串
+        app.cellArrayText = strcat(app.cellArrayText, string); % 连接字符串
+        app.TextArea.Value = app.cellArrayText; % 给TextArea赋值
+    end
+end
+```
+回调函数：
+```matlab
+function startupFcn(app)
+    app.cellArrayText = sprintf("~> %s\n~> ", "***** log *****"); % 赋初值
+    app.TextArea.Value=app.cellArrayText; % 文本区域中的初始显示信息
+end
+
+% Enter输入框的回调函数
+function EnterEditFieldValueChanged(app, event)
+    value = app.EnterEditField.Value;
+    if (value ~= "")
+        dispLogInfo(app, value);
+        app.EnterEditField.Value = "";
+        % 清空TextArea内容
+        if (value == "clc")
+            app.EnterEditField.Value = "";
+            app.TextArea.Value = "~> ";
+            app.cellArrayText = app.TextArea.Value;
+        end
+    end
+end
+```
